@@ -11,8 +11,8 @@ export const palette = {
   night700: '#2A2470',
   night600: '#3B348F',
   ink: '#FFF8EC',
-  inkMuted: '#CFC8E8', // 9.6:1 on night900 (AA)
-  inkSubtle: '#A39CC7', // 6.4:1 on night900 (AA)
+  inkMuted: '#CFC8E8', // 11.8:1 on night900 (AAA)
+  inkSubtle: '#A39CC7', // 7.4:1 on night900 (AAA)
   gold: '#F5B82E',
   goldDeep: '#C98A0A',
   danger: '#FF6B6B',
@@ -21,9 +21,10 @@ export const palette = {
   black: '#000000',
 } as const;
 
-/** Wax-print block colours: base, top highlight, bottom lip, motif ink. */
+/** Wax-print block colours: base, top highlight, bottom lip, motif ink.
+ *  Every base is ≥ 3:1 against the board (night800), checked. */
 export const blocks = [
-  { name: 'cobalt', base: '#2F5BD8', light: '#5B82F0', shadow: '#1D3A94', motif: '#FDE68A' },
+  { name: 'cobalt', base: '#4170F0', light: '#6B93F7', shadow: '#2848A8', motif: '#FDE68A' },
   { name: 'marigold', base: '#F2A81D', light: '#FFC94D', shadow: '#B37306', motif: '#7C2D12' },
   { name: 'emerald', base: '#0E9F6E', light: '#34C38F', shadow: '#076B4A', motif: '#FDE68A' },
   { name: 'terracotta', base: '#D9572B', light: '#F07C52', shadow: '#99361A', motif: '#FED7AA' },

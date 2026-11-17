@@ -32,7 +32,7 @@ Branch: `redesign/ui-v2`. Status: **phase 1–2 (audit + direction + tokens) —
 
 **Mood:** a lively evening market under string lights — bold wax-print colour against a deep indigo night, warm gold light, joyful and confident. Proudly Nigerian, never cartoonish.
 
-**Palette:** deep indigo night (`#0E0B2E` → `#1B1650`) as the stage; six wax-print block colours (cobalt, marigold, emerald, terracotta, magenta, teal) that all pass 3:1 against the board; **gold** (`#F5B82E`) as the single accent for score, combos and primary actions. A subtle repeating Ankara pattern (diamonds + concentric rings) sits behind the board at 6% opacity.
+**Palette:** deep indigo night (`#0E0B2E` → `#1B1650`) as the stage; six wax-print block colours (cobalt, marigold, emerald, terracotta, magenta, teal), each checked at ≥ 3:1 against the board (cobalt was brightened to pass); **gold** (`#F5B82E`) as the single accent for score, combos and primary actions. A subtle repeating Ankara pattern (diamonds + concentric rings) sits behind the board at 6% opacity.
 
 **Type:**
 - Display — **Lilita One** (chunky, rounded, joyful) for score, combo call-outs and titles.

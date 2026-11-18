@@ -1,6 +1,6 @@
 # Ankara Blocks — Redesign notes (ui-v2)
 
-Branch: `redesign/ui-v2`. Status: **phase 1–2 (audit + direction + tokens) — awaiting approval before build.**
+Branch: `redesign/ui-v2`, merged to `main`. Status: **built.** Drag-and-drop (Gesture Handler 3) with ghost preview and clear highlights, tap-to-place kept for accessibility, clear sweep + confetti + screen shake + combo banner, original SFX + haptics, pause and game-over sheets, How to play, Lilita One + Nunito, Reduce Motion support, 17 tests. Not built yet: ads (rewarded continue only, when you decide), light theme for menus, music.
 
 ## 1. Audit
 

@@ -57,4 +57,10 @@ export function useStoredState<T>(key: string, initial: T) {
   return [value, update, ready] as const;
 }
 
+/** Test helper: forget cached values so each test starts from storage. */
+export function resetStoredStateCache() {
+  cache.clear();
+  listeners.clear();
+}
+
 export const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;

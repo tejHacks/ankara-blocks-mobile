@@ -1,38 +1,40 @@
-import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
+import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { Nunito_500Medium, Nunito_700Bold, Nunito_900Black } from '@expo-google-fonts/nunito';
+import { useFonts } from 'expo-font';
+import { DarkTheme, ThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { brand } from '@/brand';
-import { usePalette } from '@/theme';
+import { colors } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+const c = colors.dark;
+
+/** Dark-first "Ankara Night Market" shell: fonts, gestures, stack. */
 export default function RootLayout() {
-  const scheme = useColorScheme();
-  const c = usePalette();
+  const [fontsLoaded, fontError] = useFonts({ LilitaOne_400Regular, Nunito_500Medium, Nunito_700Bold, Nunito_900Black });
+  const ready = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
 
-  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  if (!ready) return null;
+
   return (
-    <ThemeProvider value={{ ...base, colors: { ...base.colors, primary: c.primary, background: c.bg, card: c.bg, text: c.text, border: c.border } }}>
-      <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: c.bg },
-          headerTintColor: c.text,
-          headerTitleStyle: { fontWeight: '700' },
-          contentStyle: { backgroundColor: c.bg },
-        }}>
-        {brand.screens.map((s) => (
-          <Stack.Screen key={s.name} name={s.name} options={{ title: s.title, headerShown: !s.hideHeader, presentation: s.modal ? 'modal' : undefined }} />
-        ))}
-      </Stack>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.background }}>
+      <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: c.background, card: c.background, text: c.text, primary: c.accent, border: c.border } }}>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.background }, animation: 'fade' }}>
+          {brand.screens.map((s) => (
+            <Stack.Screen key={s.name} name={s.name} options={{ title: s.title }} />
+          ))}
+        </Stack>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

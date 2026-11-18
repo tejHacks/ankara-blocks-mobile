@@ -1,57 +1,132 @@
-"""Synthesise Ankara Blocks' sound effects (stdlib only) into assets/sfx/*.wav.
+"""Synthesise Ankara Blocks' sound effects (stdlib only).
+
+10 instrument packs (one per design family, so the game sounds new every 5 levels)
+× 5 moments (pickup, place, clear, combo, best), plus shared 'invalid' and 'levelup'.
+Writes assets/sfx/<pack>/<moment>.wav and src/game/sfx-index.ts.
 
 Run: python3 tool/make-sfx.py
 """
 import math, os, random, struct, wave
 
-SR = 44100
-OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "sfx")
-os.makedirs(OUT, exist_ok=True)
+SR = 22050
+ROOT = os.path.join(os.path.dirname(__file__), "..")
+OUT = os.path.join(ROOT, "assets", "sfx")
 random.seed(11)
 
 
-def write(name, s, gain=0.8):
+def write(path, s, gain=0.8):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     peak = max(1e-9, max(abs(x) for x in s))
-    with wave.open(os.path.join(OUT, f"{name}.wav"), "w") as w:
+    with wave.open(path, "w") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes(b"".join(struct.pack("<h", int(x / peak * gain * 32767)) for x in s))
 
 
-def n(d):
-    return range(int(SR * d))
+def mix(*parts):
+    n = max(len(p) for p in parts)
+    return [sum(p[i] for p in parts if i < len(p)) for i in range(n)]
 
 
-# pick up — soft wooden "tok"
-tok = [math.sin(2 * math.pi * 900 * (i / SR)) * math.exp(-(i / SR) * 60) for i in n(0.08)]
-# place — chunkier "clack" (two partials + click)
-clack = [(math.sin(2 * math.pi * 520 * t) + 0.6 * math.sin(2 * math.pi * 1310 * t)) * math.exp(-t * 38) + 0.3 * random.uniform(-1, 1) * math.exp(-t * 400)
-         for t in (i / SR for i in n(0.14))]
-# invalid — low thud
-thud = [math.sin(2 * math.pi * (110 + 60 * math.exp(-t * 30)) * t) * math.exp(-t * 18) for t in (i / SR for i in n(0.22))]
-# clear — shaker sweep rising
-sweep, prev = [], 0.0
-for i in n(0.35):
-    t = i / SR
-    x = random.uniform(-1, 1); y = x - prev; prev = x
-    sweep.append(y * math.sin(math.pi * t / 0.35) * (0.4 + t * 2))
-# combo — talking-drum hit (pitch bends down)
-drum = []
-ph = 0.0
-for i in n(0.5):
-    t = i / SR
-    f = 180 + 160 * math.exp(-t * 9)
-    ph += 2 * math.pi * f / SR
-    drum.append(math.sin(ph) * math.exp(-t * 6) + 0.15 * random.uniform(-1, 1) * math.exp(-t * 80))
-# new best — short highlife-style guitar sting (plucked arpeggio, C major)
-sting = [0.0] * int(SR * 1.2)
-for k, f in enumerate([523.25, 659.25, 783.99, 1046.5]):
-    start = int(SR * 0.09 * k)
-    for i in range(int(SR * 0.8)):
+def delay(s, seconds):
+    return [0.0] * int(SR * seconds) + s
+
+
+def noise():
+    return random.uniform(-1, 1)
+
+
+# ── instrument voices: tone(freq, dur) -> samples ────────────────────────────
+def wood(f, d):
+    return [math.sin(2 * math.pi * f * t) * math.exp(-t * 45) + 0.25 * noise() * math.exp(-t * 500) for t in (i / SR for i in range(int(SR * d)))]
+
+def marimba(f, d):
+    return [(math.sin(2 * math.pi * f * t) + 0.3 * math.sin(2 * math.pi * 4 * f * t) * math.exp(-t * 30)) * math.exp(-t * 9) for t in (i / SR for i in range(int(SR * d)))]
+
+def kalimba(f, d):
+    return [(math.sin(2 * math.pi * f * t) + 0.4 * math.sin(2 * math.pi * 5.4 * f * t) * math.exp(-t * 40)) * math.exp(-t * 7) for t in (i / SR for i in range(int(SR * d)))]
+
+def agogo(f, d):
+    return [sum(a * math.sin(2 * math.pi * f * h * t) for h, a in [(1, 1), (2.76, .5), (5.4, .25)]) * math.exp(-t * 12) for t in (i / SR for i in range(int(SR * d)))]
+
+def udu(f, d):
+    out, ph = [], 0.0
+    for i in range(int(SR * d)):
         t = i / SR
-        v = sum(math.sin(2 * math.pi * f * h * t) / h ** 1.5 for h in (1, 2, 3)) * math.exp(-t * 5)
-        if start + i < len(sting):
-            sting[start + i] += v
+        ph += 2 * math.pi * f * (1 + 0.6 * math.exp(-t * 25)) / SR
+        out.append(math.sin(ph) * math.exp(-t * 8))
+    return out
 
-for name, s in [("pickup", tok), ("place", clack), ("invalid", thud), ("clear", sweep), ("combo", drum), ("best", sting)]:
-    write(name, s)
-    print("wrote", name)
+def synth(f, d):
+    return [(1 if math.sin(2 * math.pi * f * t) > 0 else -1) * 0.5 * math.exp(-t * 10) + 0.5 * math.sin(2 * math.pi * f * t) * math.exp(-t * 10) for t in (i / SR for i in range(int(SR * d)))]
+
+def shaker(f, d):
+    out, prev = [], 0.0
+    for i in range(int(SR * d)):
+        t = i / SR
+        x = noise(); y = x - prev; prev = x
+        out.append(y * math.exp(-t * 25) * (0.6 + 0.4 * math.sin(2 * math.pi * f * t)))
+    return out
+
+def drop(f, d):
+    out, ph = [], 0.0
+    for i in range(int(SR * d)):
+        t = i / SR
+        ph += 2 * math.pi * f * (1 + 1.5 * (1 - math.exp(-t * 30))) / SR
+        out.append(math.sin(ph) * math.exp(-t * 14))
+    return out
+
+def steelpan(f, d):
+    return [sum(a * math.sin(2 * math.pi * f * h * t) for h, a in [(1, 1), (2, .6), (3, .3), (4.2, .15)]) * math.exp(-t * 5) * min(1, t / 0.004) for t in (i / SR for i in range(int(SR * d)))]
+
+def talkingdrum(f, d):
+    out, ph = [], 0.0
+    for i in range(int(SR * d)):
+        t = i / SR
+        ph += 2 * math.pi * (f * 0.5 + f * 0.6 * math.exp(-t * 9)) / SR
+        out.append(math.sin(ph) * math.exp(-t * 6) + 0.12 * noise() * math.exp(-t * 80))
+    return out
+
+PACKS = [("wood", wood), ("marimba", marimba), ("kalimba", kalimba), ("agogo", agogo), ("udu", udu),
+         ("neon", synth), ("shaker", shaker), ("drops", drop), ("steelpan", steelpan), ("talkingdrum", talkingdrum)]
+
+# Pentatonic note set (Hz), shifted per pack so each family has its own key.
+BASE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]
+
+def arp(voice, notes, gap, dur):
+    return mix(*[delay(voice(n, dur), gap * i) for i, n in enumerate(notes)])
+
+moments = ["pickup", "place", "clear", "combo", "best"]
+index = []
+for p, (name, voice) in enumerate(PACKS):
+    k = 2 ** ((p % 5) / 12)  # transpose per pack
+    s = [n * k for n in BASE]
+    sounds = {
+        "pickup": voice(s[5] * 2 if name not in ("udu", "talkingdrum") else s[5], 0.12),
+        "place": voice(s[2], 0.18),
+        "clear": arp(voice, [s[0], s[2], s[4]], 0.06, 0.35),
+        "combo": arp(voice, [s[0], s[2], s[3], s[5]], 0.07, 0.45),
+        "best": arp(voice, [s[0], s[2], s[3], s[5], s[7]], 0.09, 0.7),
+    }
+    for m, smp in sounds.items():
+        write(os.path.join(OUT, name, f"{m}.wav"), smp)
+    index.append(name)
+
+# shared
+thud = [math.sin(2 * math.pi * (110 + 60 * math.exp(-t * 30)) * t) * math.exp(-t * 18) for t in (i / SR for i in range(int(SR * 0.22)))]
+write(os.path.join(OUT, "shared", "invalid.wav"), thud)
+fanfare = mix(arp(steelpan, [523.25, 659.25, 783.99], 0.11, 0.6), delay(arp(kalimba, [1046.5, 1318.5], 0.08, 0.8), 0.36))
+write(os.path.join(OUT, "shared", "levelup.wav"), fanfare)
+
+# TS index with static requires (Metro needs literal paths)
+lines = ["/* Generated by tool/make-sfx.py — do not edit. */", "export const SOUND_PACKS = ["]
+for name in index:
+    lines.append("  {")
+    lines.append(f"    name: '{name}',")
+    for m in moments:
+        lines.append(f"    {m}: require('@/assets/sfx/{name}/{m}.wav'),")
+    lines.append("  },")
+lines += ["] as const;", "", "export const SHARED_SFX = {",
+          "  invalid: require('@/assets/sfx/shared/invalid.wav'),",
+          "  levelup: require('@/assets/sfx/shared/levelup.wav'),", "} as const;", ""]
+open(os.path.join(ROOT, "src", "game", "sfx-index.ts"), "w").write("\n".join(lines))
+print("packs:", ", ".join(index))

@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { effects, springs, size as sizes } from '@/theme/tokens';
 import { Block } from './block';
 import { shapeSize, type Piece } from './engine';
+import type { Theme } from './themes';
 
 export interface BoardRect {
   x: number;
@@ -20,6 +21,7 @@ interface Props {
   selected: boolean;
   fits: boolean;
   board: SharedValue<BoardRect>;
+  theme: Theme;
   reduceMotion: boolean;
   onTap: (index: number) => void;
   onPickUp: (index: number) => void;
@@ -36,7 +38,7 @@ const SLOT = 112;
  * While dragging it grows to board-cell size and floats above the finger
  * so you can see where it will land.
  */
-export function TrayPiece({ piece, index, selected, fits, board, reduceMotion, onTap, onPickUp, onHover, onDrop }: Props) {
+export function TrayPiece({ piece, index, selected, fits, board, theme, reduceMotion, onTap, onPickUp, onHover, onDrop }: Props) {
   const { rows, cols } = shapeSize(piece.shape);
   const w = cols * MINI;
   const h = rows * MINI;
@@ -117,11 +119,11 @@ export function TrayPiece({ piece, index, selected, fits, board, reduceMotion, o
         accessibilityHint="Double-tap to select, then choose a spot on the board"
         accessibilityActions={[{ name: 'activate' }]}
         onAccessibilityAction={(e) => e.nativeEvent.actionName === 'activate' && onTap(index)}
-        style={{ width: SLOT, height: SLOT, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 2, borderColor: selected ? '#F5B82E' : 'transparent', opacity: fits ? 1 : 0.35 }}>
+        style={{ width: SLOT, height: SLOT, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 2, borderColor: selected ? theme.accent : 'transparent', opacity: fits ? 1 : 0.35 }}>
         <Animated.View style={[{ width: w, height: h }, style, lifted && !reduceMotion ? { shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 10 } } : null]}>
           {piece.shape.map(([r, c]) => (
             <View key={`${r}-${c}`} style={{ position: 'absolute', left: c * MINI, top: r * MINI, padding: 1 }}>
-              <Block color={piece.color} size={MINI - 2} />
+              <Block color={piece.color} size={MINI - 2} theme={theme} />
             </View>
           ))}
         </Animated.View>

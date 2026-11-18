@@ -1,4 +1,4 @@
-import { canPlace, emptyBoard, fitsAnywhere, newTray, place, shapeSize, SIZE, type Piece } from '@/game/engine';
+import { canPlace, emptyBoard, fitsAnywhere, newTray, PERFECT_BONUS, place, shapeSize, SIZE, type Piece } from '@/game/engine';
 
 const single: Piece = { id: 's', shape: [[0, 0]], color: 0 };
 const bar3: Piece = { id: 'b', shape: [[0, 0], [0, 1], [0, 2]], color: 1 };
@@ -31,15 +31,24 @@ describe('scoring and clears', () => {
   });
 
   it('clears a full row and scores 10 × lines²', () => {
-    let b = emptyBoard();
+    let b = place(emptyBoard(), single, 5, 5, 0).board; // keep one block elsewhere: not a perfect clear
     for (let c = 0; c < SIZE - 1; c++) b = place(b, single, 2, c, 0).board;
     const res = place(b, single, 2, SIZE - 1, 0);
     expect(res.linesCleared).toBe(1);
+    expect(res.perfect).toBe(false);
     expect(res.points).toBe(1 + 10);
     expect(res.board[2].every((x) => x === null)).toBe(true);
   });
 
-  it('clears a row and a column at once (2 lines → 40, boosted by combo)', () => {
+  it('awards the perfect-clear bonus when the board is emptied', () => {
+    let b = emptyBoard();
+    for (let c = 0; c < SIZE - 1; c++) b = place(b, single, 2, c, 0).board;
+    const res = place(b, single, 2, SIZE - 1, 0);
+    expect(res.perfect).toBe(true);
+    expect(res.points).toBe(1 + 10 + PERFECT_BONUS);
+  });
+
+  it('clears a row and a column at once (2 lines → 40, boosted by combo, plus perfect bonus)', () => {
     let b = emptyBoard();
     for (let i = 0; i < SIZE; i++) {
       if (i !== 4) b = place(b, single, 4, i, 0).board; // row 4 minus the crossing
@@ -47,7 +56,7 @@ describe('scoring and clears', () => {
     }
     const res = place(b, single, 4, 4, 2);
     expect(res.linesCleared).toBe(2);
-    expect(res.points).toBe(1 + 10 * 4 * (1 + 2));
+    expect(res.points).toBe(1 + 10 * 4 * (1 + 2) + PERFECT_BONUS * (1 + 2));
     expect(res.board.flat().every((x) => x === null)).toBe(true);
   });
 

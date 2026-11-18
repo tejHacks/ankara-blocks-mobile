@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Block } from '@/game/block';
 import { GameButton } from '@/game/sheets';
+import { themeForLevel } from '@/game/themes';
 import { useStoredState } from '@/lib/storage';
 import { colors, space, type } from '@/theme/tokens';
 
 const c = colors.dark;
 const B = 34;
+const T1 = themeForLevel(1);
 
 /** Mini illustrations built from real game blocks. */
 function Grid({ cells, highlight }: { cells: [number, number, number][]; highlight?: number }) {
@@ -20,7 +22,7 @@ function Grid({ cells, highlight }: { cells: [number, number, number][]; highlig
       ))}
       {cells.map(([r, col, color]) => (
         <View key={`${r}-${col}`} style={{ position: 'absolute', left: col * B + 2, top: r * B + 2 }}>
-          <Block color={color} size={B - 4} />
+          <Block color={color} size={B - 4} theme={T1} />
         </View>
       ))}
     </View>
@@ -43,8 +45,27 @@ export const cards: { key: string; title: string; body: string; art: ReactNode }
   {
     key: 'combo',
     title: 'Chain clears for combos',
-    body: 'Clear lines on back-to-back moves to multiply your points. The game ends when no piece fits.',
+    body: 'Clear lines on back-to-back moves to multiply your points. Empty the whole board for a perfect-clear bonus.',
     art: <Grid cells={[[0, 0, 4], [1, 0, 4], [2, 0, 4], [3, 0, 4], [3, 1, 2], [3, 2, 2], [3, 3, 5], [3, 4, 5]]} />,
+  },
+  {
+    key: 'levels',
+    title: '50 levels, 50 designs',
+    body: 'Every point is XP. Level up to unlock a new fabric design — and new sounds every five levels.',
+    art: (
+      <View style={{ gap: 8 }}>
+        {[1, 11, 26, 41].map((lv) => {
+          const t = themeForLevel(lv);
+          return (
+            <View key={lv} style={{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: 10, backgroundColor: t.board }}>
+              {[0, 1, 2, 3, 4].map((c) => (
+                <Block key={c} color={c} size={26} theme={t} />
+              ))}
+            </View>
+          );
+        })}
+      </View>
+    ),
   },
 ];
 

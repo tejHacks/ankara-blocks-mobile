@@ -40,12 +40,49 @@ const SHAPES: Shape[] = [
 export const emptyBoard = (): Board => Array.from({ length: SIZE }, () => Array<Cell>(SIZE).fill(null));
 
 let counter = 0;
-export function randomPiece(): Piece {
-  const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+
+/**
+ * How likely each shape is at a given level. Small and medium pieces are
+ * common; the big ones (5-long bars, 3×3 square) start rare and become
+ * more frequent as you level up — the game gets harder as it gets prettier.
+ */
+export function shapeWeights(level = 1) {
+  const t = Math.min(1, Math.max(0, (level - 1) / 49));
+  return SHAPES.map((shape) => {
+    const n = shape.length;
+    if (n >= 5) return 0.35 + 1.3 * t; // big
+    if (n === 4) return 1 + 0.4 * t;
+    return 1.2 - 0.3 * t; // small
+  });
+}
+
+function pick<T>(items: T[], weights: number[]) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let x = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    x -= weights[i];
+    if (x < 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+export function randomPiece(level = 1): Piece {
+  const shape = pick(SHAPES, shapeWeights(level));
   return { id: `p${counter++}`, shape, color: Math.floor(Math.random() * COLORS) };
 }
 
-export const newTray = () => [randomPiece(), randomPiece(), randomPiece()];
+/**
+ * Deal three pieces. Fair by design: if the board is given, at least one of
+ * them always fits, so you lose because you ran out of room — not to bad luck.
+ */
+export function newTray(level = 1, board?: Board): Piece[] {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const tray = [randomPiece(level), randomPiece(level), randomPiece(level)];
+    if (!board || tray.some((p) => fitsAnywhere(board, p.shape))) return tray;
+  }
+  // Last resort: guarantee a single block (fits whenever any cell is empty).
+  return [{ id: `p${counter++}`, shape: SHAPES[0], color: 0 }, randomPiece(level), randomPiece(level)];
+}
 
 export function canPlace(board: Board, shape: Shape, row: number, col: number) {
   return shape.every(([r, c]) => {
@@ -65,7 +102,12 @@ export interface PlaceResult {
   linesCleared: number;
   clearedCells: [number, number][];
   points: number;
+  /** The board was completely emptied by this move. */
+  perfect: boolean;
 }
+
+/** Bonus for emptying the whole board. */
+export const PERFECT_BONUS = 100;
 
 /** Place a piece, clear full rows/columns, and score it. `combo` is the current streak. */
 export function place(board: Board, piece: Piece, row: number, col: number, combo: number): PlaceResult {
@@ -81,9 +123,11 @@ export function place(board: Board, piece: Piece, row: number, col: number, comb
   for (const [r, c] of cleared) next[r][c] = null;
 
   const lines = fullRows.length + fullCols.length;
-  // 1 point per placed cell; lines score 10 × lines², boosted by the combo streak.
-  const points = piece.shape.length + (lines ? 10 * lines * lines * (1 + combo) : 0);
-  return { board: next, linesCleared: lines, clearedCells: cleared, points };
+  const perfect = lines > 0 && next.every((row) => row.every((x) => x === null));
+  // 1 point per placed cell; lines score 10 × lines², boosted by the combo streak;
+  // emptying the board adds a perfect-clear bonus.
+  const points = piece.shape.length + (lines ? 10 * lines * lines * (1 + combo) : 0) + (perfect ? PERFECT_BONUS * (1 + combo) : 0);
+  return { board: next, linesCleared: lines, clearedCells: cleared, points, perfect };
 }
 
 export const shapeSize = (shape: Shape) => ({

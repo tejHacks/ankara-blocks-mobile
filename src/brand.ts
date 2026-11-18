@@ -6,5 +6,6 @@ export const brand = defineBrand({
   screens: [
     { name: 'index', title: 'Ankara Blocks', hideHeader: true },
     { name: 'how-to-play', title: 'How to play', hideHeader: true },
+    { name: 'designs', title: 'Designs', hideHeader: true },
   ],
 });
